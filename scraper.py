@@ -1,5 +1,8 @@
 from   bs4 import BeautifulSoup
 from splinter import Browser
+import sys
+import time
+
 
 #browser = Browser('firefox', headless=True)
 #browser = Browser('chrome', headless=True)
