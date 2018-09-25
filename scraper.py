@@ -25,7 +25,8 @@ if browser.is_element_present_by_xpath('//*[@id="l-searchResults"]/div[29]'):
 		print("Found "+str(matches)+" Matches from "+str(len(adverts))+" Items")
 	else:
 		print('No Search Results\n')
-
+else:
+	print('Page Element Not Found\n')
 browser.quit()
 sys.exit(0)
 
