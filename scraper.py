@@ -9,9 +9,9 @@ import time
 browser = Browser('phantomjs', load_images=False)
 
 browser.visit('https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E984&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor')
-
+time.sleep(10)
 if browser.is_element_present_by_xpath('//*[@id="l-searchResults"]/div[29]'):
-	time.sleep(3)
+	
 	html = browser.html
 	soup = BeautifulSoup(html, 'html.parser')
 
