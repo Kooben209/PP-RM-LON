@@ -1,10 +1,4 @@
-import scraperwiki
-import requests
-import sqlite3
 from   bs4 import BeautifulSoup
-import sys
-import time
-
 from splinter import Browser
 
 browser = Browser('firefox', headless=True)
