@@ -1,7 +1,8 @@
 from   bs4 import BeautifulSoup
 from splinter import Browser
 
-browser = Browser('firefox', headless=True)
+#browser = Browser('firefox', headless=True)
+browser = Browser('chrome', headless=True, desired_capabilities={'acceptInsecureCerts': True})
 
 browser.visit('https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E984&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor')
 
