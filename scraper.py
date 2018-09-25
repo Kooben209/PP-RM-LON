@@ -13,10 +13,10 @@ time.sleep(10)
 #if browser.is_element_present_by_xpath('//*[@id="l-searchResults"]/div[29]'):
 	
 html = browser.html
-
+print(html)
 soup = BeautifulSoup(html, 'html.parser')
 
-print(soup)
+
 
 searchResults = soup.find("div", {"id" : "l-searchResults"})
 matches = 0
