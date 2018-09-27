@@ -4,7 +4,10 @@ import os
 from   bs4 import BeautifulSoup
 import sys
 import time
-
+import scraperwiki
+import sqlite3
+import re
+from datetime import datetime
 
 chrome_options = Options()
 chrome_options.add_argument("--headless")
@@ -47,11 +50,24 @@ while page < numOfPages:
 		
 		for advert in adverts:
 			if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
+				advertMatch = {}
+				propLink="https://www.rightmove.co.uk"+advert.find("a", {"class" : "propertyCard-link"}).get('href')
+				propId=re.findall('\d+',propLink)
 				title = advert.find("h2", {"class" : "propertyCard-title"}).text
 				address = advert.find("address", {"class" : "propertyCard-address"}).find("span").text
 				link = advert.find("a", {"class" : "propertyCard-link"})
 				price = advert.find("div", {"class" : "propertyCard-priceValue"}).text
-				print(title+" - "+address+" - "+price)
+				image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
+				
+				advertMatch['propId'] = propId[0]
+				advertMatch['title'] = title
+				advertMatch['address'] = address
+				advertMatch['price'] = price
+				advertMatch['image1'] = image1
+				advertMatch['pubDate'] = datetime.now()
+				
+				scraperwiki.sqlite.save(['propId'],advertMatch)
+				
 				matches += 1
 		print("Found "+str(matches)+" Matches from "+str(numResults)+" Items of which "+str(numFeat)+" are Featured")
 		if matches == 0 or (numResults-numFeat-2)>matches:
