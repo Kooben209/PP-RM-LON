@@ -60,6 +60,7 @@ while page < numOfPages:
 				image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
 				
 				advertMatch['propId'] = propId[0]
+				advertMatch['link'] = propLink
 				advertMatch['title'] = title
 				advertMatch['address'] = address
 				advertMatch['price'] = price
