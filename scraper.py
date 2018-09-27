@@ -28,7 +28,7 @@ if driver.find_element_by_xpath('//*[@id="l-searchResults"]/div[29]'):
 	if searchResults is not None:
 		numOfPages = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text
 		print("NumberOfPages:"+numOfPages)
-    adverts = searchResults.findAll("div", {"id" : lambda L: L and L.startswith('property-')})
+		adverts = searchResults.findAll("div", {"id" : lambda L: L and L.startswith('property-')})
 		for advert in adverts:
 			if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
 				title = advert.find("h2", {"class" : "propertyCard-title"}).text
