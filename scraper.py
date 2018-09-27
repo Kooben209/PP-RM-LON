@@ -18,17 +18,28 @@ chrome_options.add_argument("--disable-extensions")
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
 driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E984&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor")
 
-if driver.find_element_by_xpath('//*[@id="l-searchResults"]/div[29]'):
+try:
+	numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
+except ValueError:
+	numOfPages = 0	
+
+print("NumberOfPages:"+str(numOfPages))
+
+page = 0
+while page < numOfPages:
 
 	html = driver.page_source
 	soup = BeautifulSoup(html, 'html.parser')
 	
 	searchResults = soup.find("div", {"id" : "l-searchResults"})
 	matches = 0
-	if searchResults is not None:
-		numOfPages = driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text
-		print("NumberOfPages:"+numOfPages)
+	if searchResults is not None:		
 		adverts = searchResults.findAll("div", {"id" : lambda L: L and L.startswith('property-')})
+		numResults = len(adverts)
+		numPreFeat = len(searchResults.findAll("div", {"class" : "propertyCard propertyCard--premium propertyCard--featured"}))
+		numNormFeat = len(searchResults.findAll("div", {"class" : "propertyCard propertyCard--featured"}))
+		numFeat = numPreFeat+numNormFeat
+		
 		for advert in adverts:
 			if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
 				title = advert.find("h2", {"class" : "propertyCard-title"}).text
@@ -37,10 +48,21 @@ if driver.find_element_by_xpath('//*[@id="l-searchResults"]/div[29]'):
 				price = advert.find("div", {"class" : "propertyCard-priceValue"}).text
 				print(title+" - "+address+" - "+price)
 				matches += 1
-		print("Found "+str(matches)+" Matches from "+str(len(adverts))+" Items")
+		print("Found "+str(matches)+" Matches from "+str(numResults)+" Items of which "+str(numFeat)+" are Featured")
+		if matches == 0 or (numResults-numFeat-2)>matches:
+			break		
 	else:
 		print('No Search Results\n')
-else:
-	print('Page Element Not Found\n')
+	
+	if numOfPages > 1:
+		if page == 0: 
+			close_cookie = driver.find_element_by_css_selector('#cookiePolicy > div > button')
+			close_cookie.click()
+		time.sleep(5)
+		next_page = driver.find_element_by_css_selector('.pagination-direction--next')
+		next_page.click()
+		
+	page +=1 
 
 driver.quit()
+
