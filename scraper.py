@@ -16,7 +16,7 @@ chrome_options.add_argument("disable-infobars")
 chrome_options.add_argument("--disable-extensions")
 
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
-driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E984&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor")
+driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E984&radius=40.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor")
 
 try:
 	numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
