@@ -25,10 +25,10 @@ driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/lo
 driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor")
 
 def parseAskingPrice(aPrice):
-	try:
-		value = round(Decimal(sub(r'[^\d.]', '', aPrice)))
-	except:
-		value = 0
+	#try:
+	value = round(Decimal(sub(r'[^\d.]', '', aPrice)))
+	#except:
+	#	value = 0
 	return value
 
 try:
