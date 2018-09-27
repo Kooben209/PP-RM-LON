@@ -77,9 +77,7 @@ while page < numOfPages:
 					addedOrReduced=datetime.now().date()- timedelta(days=1)
 				else:
 					addedOrReduced = datetime.strptime(addedOrReduced, '%d/%m/%Y')
-				
-				print(reduced)
-				
+
 				advertMatch['propId'] = propId[0]
 				advertMatch['link'] = propLink
 				advertMatch['title'] = title
