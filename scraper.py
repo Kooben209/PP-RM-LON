@@ -13,8 +13,8 @@ chrome_options.add_argument("--disable-extensions")
 
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
 driver.get("https://www.google.com")
-#lucky_button = driver.find_element_by_css_selector("[name=btnI]")
-#lucky_button.click()
+lucky_button = driver.find_element_by_css_selector("[name=btnI]")
+lucky_button.click()
 
 print(driver.page_source)
 
