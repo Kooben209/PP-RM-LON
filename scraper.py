@@ -66,7 +66,7 @@ while page < numOfPages:
 		time.sleep(5)
 		next_page = driver.find_element_by_css_selector('.pagination-direction--next')
 		next_page.click()
-		
+		time.sleep(5)
 	page +=1 
 
 driver.quit()
