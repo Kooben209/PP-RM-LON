@@ -27,7 +27,12 @@ print("NumberOfPages:"+str(numOfPages))
 
 page = 0
 while page < numOfPages:
-
+	print(driver.current_url)
+	numResults=0
+	numPreFeat=0
+	numNormFeat=0
+	numFeat=0
+	
 	html = driver.page_source
 	soup = BeautifulSoup(html, 'html.parser')
 	
