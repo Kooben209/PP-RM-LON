@@ -7,7 +7,9 @@ import time
 import scraperwiki
 import sqlite3
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
+from decimal import Decimal
+
 
 chrome_options = Options()
 chrome_options.add_argument("--headless")
@@ -19,7 +21,15 @@ chrome_options.add_argument("disable-infobars")
 chrome_options.add_argument("--disable-extensions")
 
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
+
 driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor")
+
+def parseAskingPrice(aPrice):
+	try:
+		value = round(Decimal(sub(r'[^\d.]', '', aPrice)))
+	except:
+		value = 0
+	return value
 
 try:
 	numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
@@ -49,6 +59,7 @@ while page < numOfPages:
 		numFeat = numPreFeat+numNormFeat
 		
 		for advert in adverts:
+			reduced=False
 			if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
 				advertMatch = {}
 				propLink="https://www.rightmove.co.uk"+advert.find("a", {"class" : "propertyCard-link"}).get('href')
@@ -56,8 +67,18 @@ while page < numOfPages:
 				title = advert.find("h2", {"class" : "propertyCard-title"}).text
 				address = advert.find("address", {"class" : "propertyCard-address"}).find("span").text
 				link = advert.find("a", {"class" : "propertyCard-link"})
-				price = advert.find("div", {"class" : "propertyCard-priceValue"}).text
+				price = parseAskingPrice(advert.find("div", {"class" : "propertyCard-priceValue"}).text)
 				image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
+				addedOrReduced = advert.find("span", {"class" : "propertyCard-branchSummary-addedOrReduced"}).text
+				if "Reduced on" in addedOrReduced :
+					reduced=True
+				addedOrReduced = addedOrReduced.replace("Added on ", "").replace("Reduced on ", "")
+				if addedOrReduced =="Added yesterday":
+					addedOrReduced=datetime.now().date()- timedelta(days=1)
+				else:
+					addedOrReduced = datetime.strptime(addedOrReduced, '%d/%m/%Y')
+				
+				print(reduced)
 				
 				advertMatch['propId'] = propId[0]
 				advertMatch['link'] = propLink
@@ -66,6 +87,8 @@ while page < numOfPages:
 				advertMatch['price'] = price
 				advertMatch['image1'] = image1
 				advertMatch['pubDate'] = datetime.now()
+				advertMatch['addedOrReduced'] = addedOrReduced
+				advertMatch['reduced'] = reduced
 				
 				scraperwiki.sqlite.save(['propId'],advertMatch)
 				
@@ -87,4 +110,5 @@ while page < numOfPages:
 	page +=1 
 
 driver.quit()
+sys.exit(0)
 
