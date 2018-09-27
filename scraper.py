@@ -5,8 +5,8 @@ import time
 
 
 #browser = Browser('firefox', headless=True)
-#browser = Browser('chrome', headless=True)
-browser = Browser('phantomjs', load_images=False)
+browser = Browser('chrome', headless=True)
+#browser = Browser('phantomjs', load_images=False)
 
 browser.visit('https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E984&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor')
 time.sleep(10)
