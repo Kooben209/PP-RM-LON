@@ -70,6 +70,7 @@ while page < numOfPages:
 				address = advert.find("address", {"class" : "propertyCard-address"}).find("span").text
 				link = advert.find("a", {"class" : "propertyCard-link"})
 				price = parseAskingPrice(advert.find("div", {"class" : "propertyCard-priceValue"}).text)
+				displayPrice = advert.find("div", {"class" : "propertyCard-priceValue"}).text
 				image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
 				addedOrReduced = advert.find("span", {"class" : "propertyCard-branchSummary-addedOrReduced"}).text
 				if "Reduced" in addedOrReduced:
@@ -86,6 +87,7 @@ while page < numOfPages:
 				advertMatch['title'] = title
 				advertMatch['address'] = address
 				advertMatch['price'] = price
+				advertMatch['displayPrice'] = displayPrice
 				advertMatch['image1'] = image1
 				advertMatch['pubDate'] = datetime.now()
 				advertMatch['addedOrReduced'] = addedOrReduced
@@ -112,5 +114,6 @@ while page < numOfPages:
 
 driver.quit()
 sys.exit(0)
+
 
 
