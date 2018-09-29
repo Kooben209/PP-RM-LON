@@ -23,7 +23,8 @@ chrome_options.add_argument("--disable-extensions")
 
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
 
-driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490&radius=5.0&sortType=18&includeSSTC=false&keywords=probate%2Cexecutor")
+checkURL = os.environ['MORPH_URL']
+driver.get(checkURL)
 
 def parseAskingPrice(aPrice):
 	try:
