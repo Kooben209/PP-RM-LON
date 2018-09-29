@@ -23,7 +23,7 @@ chrome_options.add_argument("--disable-extensions")
 
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
 
-driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490&radius=5.0&sortType=18&includeSSTC=true&keywords=probate%2Cexecutor")
+driver.get("https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E87490&radius=5.0&sortType=18&includeSSTC=false&keywords=probate%2Cexecutor")
 
 def parseAskingPrice(aPrice):
 	try:
@@ -71,14 +71,15 @@ while page < numOfPages:
 				price = parseAskingPrice(advert.find("div", {"class" : "propertyCard-priceValue"}).text)
 				image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
 				addedOrReduced = advert.find("span", {"class" : "propertyCard-branchSummary-addedOrReduced"}).text
-				if "Reduced on" in addedOrReduced :
+				if "Reduced" in addedOrReduced:
 					reduced=True
-				addedOrReduced = addedOrReduced.replace("Added on ", "").replace("Reduced on ", "")
-				if addedOrReduced =="Added yesterday":
+				if "yesterday" in addedOrReduced:
 					addedOrReduced=datetime.now().date()- timedelta(days=1)
+				elif "today" in addedOrReduced:	
+					addedOrReduced=datetime.now().date()
 				else:
-					addedOrReduced = datetime.strptime(addedOrReduced, '%d/%m/%Y')
-
+					dateMatch = re.search(r'\d{2}/\d{2}/\d{4}', addedOrReduced)
+					addedOrReduced = datetime.strptime(dateMatch.group(), '%d/%m/%Y').date()
 				advertMatch['propId'] = propId[0]
 				advertMatch['link'] = propLink
 				advertMatch['title'] = title
@@ -110,4 +111,5 @@ while page < numOfPages:
 
 driver.quit()
 sys.exit(0)
+
 
