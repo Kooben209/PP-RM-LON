@@ -94,6 +94,7 @@ for k, v in filtered_dict.items():
 					advertMatch['pubDate'] = datetime.now()
 					advertMatch['addedOrReduced'] = addedOrReduced
 					advertMatch['reduced'] = reduced
+					advertMatch['location'] = k.replace("MORPH_URL_","")
 					
 					scraperwiki.sqlite.save(['propId'],advertMatch)
 					
