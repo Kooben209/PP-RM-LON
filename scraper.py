@@ -78,15 +78,18 @@ for k, v in filtered_dict.items():
 					displayPrice = advert.find("div", {"class" : "propertyCard-priceValue"}).text
 					image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
 					addedOrReduced = advert.find("span", {"class" : "propertyCard-branchSummary-addedOrReduced"}).text
-					if "Reduced" in addedOrReduced:
-						reduced=True
-					if "yesterday" in addedOrReduced:
-						addedOrReduced=datetime.now().date()- timedelta(days=1)
-					elif "today" in addedOrReduced:	
-						addedOrReduced=datetime.now().date()
+					if addedOrReduced != None and addedOrReduced != "":
+						if "Reduced" in addedOrReduced:
+							reduced=True
+						if "yesterday" in addedOrReduced:
+							addedOrReduced=datetime.now().date()- timedelta(days=1)
+						elif "today" in addedOrReduced:	
+							addedOrReduced=datetime.now().date()
+						else:
+							dateMatch = re.search(r'\d{2}/\d{2}/\d{4}', addedOrReduced)
+							addedOrReduced = datetime.strptime(dateMatch.group(), '%d/%m/%Y').date()
 					else:
-						dateMatch = re.search(r'\d{2}/\d{2}/\d{4}', addedOrReduced)
-						addedOrReduced = datetime.strptime(dateMatch.group(), '%d/%m/%Y').date()
+						addedOrReduced = datetime.now().date()
 					advertMatch['propId'] = propId[0]
 					advertMatch['link'] = propLink
 					advertMatch['title'] = title
