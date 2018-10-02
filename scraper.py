@@ -23,18 +23,19 @@ chrome_options.add_argument("--disable-extensions")
 
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
 
+def parseAskingPrice(aPrice):
+	try:
+		value = round(Decimal(sub(r'[^\d.]', '', aPrice)))
+	except:
+		value = 0
+	return value
+
 filtered_dict = {k:v for (k,v) in os.environ.items() if 'MORPH_URL' in k}
-for k, v in filtered_dict.items():
+for k, v in filtered_dict.items(): 
 	checkURL = v
 	print(checkURL)
-	driver.get(checkURL)
 
-	def parseAskingPrice(aPrice):
-		try:
-			value = round(Decimal(sub(r'[^\d.]', '', aPrice)))
-		except:
-			value = 0
-		return value
+	driver.get(checkURL)
 
 	try:
 		numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
@@ -50,10 +51,10 @@ for k, v in filtered_dict.items():
 		numPreFeat=0
 		numNormFeat=0
 		numFeat=0
-
+		
 		html = driver.page_source
 		soup = BeautifulSoup(html, 'html.parser')
-
+		
 		searchResults = soup.find("div", {"id" : "l-searchResults"})
 		matches = 0
 		if searchResults is not None:		
@@ -62,7 +63,7 @@ for k, v in filtered_dict.items():
 			numPreFeat = len(searchResults.findAll("div", {"class" : "propertyCard propertyCard--premium propertyCard--featured"}))
 			numNormFeat = len(searchResults.findAll("div", {"class" : "propertyCard propertyCard--featured"}))
 			numFeat = numPreFeat+numNormFeat
-
+			
 			for advert in adverts:
 				reduced=False
 				if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
@@ -95,16 +96,16 @@ for k, v in filtered_dict.items():
 					advertMatch['pubDate'] = datetime.now()
 					advertMatch['addedOrReduced'] = addedOrReduced
 					advertMatch['reduced'] = reduced
-
+					
 					scraperwiki.sqlite.save(['propId'],advertMatch)
-
+					
 					matches += 1
 			print("Found "+str(matches)+" Matches from "+str(numResults)+" Items of which "+str(numFeat)+" are Featured")
 			if matches == 0 or (numResults-numFeat-2)>matches:
 				break		
 		else:
 			print('No Search Results\n')
-
+		
 		if numOfPages > 1:
 			if page == 0: 
 				close_cookie = driver.find_element_by_css_selector('#cookiePolicy > div > button')
