@@ -114,7 +114,7 @@ for k, v in filtered_dict.items():
 			next_page.click()
 			time.sleep(5)
 		page +=1 
-
+	time.sleep(5)
 driver.quit()
 sys.exit(0)
 
