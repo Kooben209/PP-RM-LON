@@ -26,6 +26,7 @@ driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/lo
 filtered_dict = {k:v for (k,v) in os.environ.items() if 'MORPH_URL' in k}
 for k, v in filtered_dict.items():
 	checkURL = v
+	print(checkURL)
 	driver.get(checkURL)
 
 	def parseAskingPrice(aPrice):
