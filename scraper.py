@@ -135,7 +135,6 @@ for k, v in filtered_dict.items():
 		if numOfPages > 1:
 			if page == 0: 
 				close_cookie = driver.find_element_by_css_selector('#cookiePolicy > div > button')
-				print(close_cookie)
 				close_cookie.click()
 			time.sleep(sleepTime)
 			next_page = driver.find_element_by_css_selector('.pagination-direction--next')
