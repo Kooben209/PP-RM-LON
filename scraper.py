@@ -29,15 +29,26 @@ def parseAskingPrice(aPrice):
 	except:
 		value = 0
 	return value
+	
+def saveToStore(data):
+	scraperwiki.sqlite.execute("CREATE TABLE IF NOT EXISTS swdata ( 'propId' TEXT, link TEXT, title TEXT, address TEXT, price BIGINT, 'displayPrice' TEXT, image1 TEXT, 'pubDate' DATETIME, 'addedOrReduced' DATE, reduced BOOLEAN, location TEXT, CHECK (reduced IN (0, 1)), PRIMARY KEY('propId'))")
+	scraperwiki.sqlite.execute("CREATE UNIQUE INDEX IF NOT EXISTS 'swdata_propId_unique' ON swdata ('propId')")
+	scraperwiki.sqlite.execute("INSERT OR IGNORE INTO 'swdata' VALUES (?,?,?,?,?,?,?,?,?,?,?)", (data['propId'], data['link'], data['title'], data['address'], data['price'], data['displayPrice'], data['image1'], data['pubDate'], data['addedOrReduced'], data['reduced'], data['location']))
+	#scraperwiki.sqlite.commit()
+	
+excludeAgents = ['andrew granger']
 
 filtered_dict = {k:v for (k,v) in os.environ.items() if 'MORPH_URL' in k}
+
+sleepTime = 5
+if os.environ.get("MORPH_SLEEP") is not None:
+	sleepTime = int(os.environ["MORPH_SLEEP"])
+
 for k, v in filtered_dict.items(): 
 	checkURL = v
 	if os.environ.get('MORPH_DEBUG') == "1":
 		print(checkURL)
- 
 	driver.get(checkURL)
-
 	try:
 		numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
 	except ValueError:
@@ -47,7 +58,6 @@ for k, v in filtered_dict.items():
 
 	page = 0
 	while page < numOfPages:
-		#print(driver.current_url)
 		numResults=0
 		numPreFeat=0
 		numNormFeat=0
@@ -69,6 +79,11 @@ for k, v in filtered_dict.items():
 				reduced=False
 				if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
 					advertMatch = {}
+					agent = advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}).text
+					if any(x in agent.lower() for x in excludeAgents):
+						continue;
+
+					location = k.replace("MORPH_URL_","").replace("_"," ").title()
 					propLink="https://www.rightmove.co.uk"+advert.find("a", {"class" : "propertyCard-link"}).get('href')
 					propId=re.findall('\d+',propLink)
 					title = advert.find("h2", {"class" : "propertyCard-title"}).text
@@ -100,9 +115,11 @@ for k, v in filtered_dict.items():
 					advertMatch['pubDate'] = datetime.now()
 					advertMatch['addedOrReduced'] = addedOrReduced
 					advertMatch['reduced'] = reduced
-					advertMatch['location'] = k.replace("MORPH_URL_","").title()
+					advertMatch['location'] = location
+
+					#scraperwiki.sqlite.save(['propId'],advertMatch)
 					
-					scraperwiki.sqlite.save(['propId'],advertMatch)
+					saveToStore(advertMatch)
 					
 					matches += 1
 			print("Found "+str(matches)+" Matches from "+str(numResults)+" Items of which "+str(numFeat)+" are Featured")
@@ -114,15 +131,17 @@ for k, v in filtered_dict.items():
 		if numOfPages > 1:
 			if page == 0: 
 				close_cookie = driver.find_element_by_css_selector('#cookiePolicy > div > button')
+				print(close_cookie)
 				close_cookie.click()
-			time.sleep(5)
+			time.sleep(sleepTime)
 			next_page = driver.find_element_by_css_selector('.pagination-direction--next')
 			next_page.click()
-			time.sleep(5)
+			time.sleep(sleepTime)
 		page +=1 
-	time.sleep(5)
+	time.sleep(sleepTime)
 driver.quit()
 sys.exit(0)
+
 
 
 
