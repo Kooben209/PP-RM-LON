@@ -46,8 +46,12 @@ if os.environ.get("MORPH_SLEEP") is not None:
 
 for k, v in filtered_dict.items(): 
 	checkURL = v
+	if os.environ.get('MORPH_MAXDAYS') == "0":
+		checkURL = checkURL.replace("&maxDaysSinceAdded=1","")
+		
 	if os.environ.get('MORPH_DEBUG') == "1":
 		print(checkURL)
+
 	driver.get(checkURL)
 	try:
 		numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
