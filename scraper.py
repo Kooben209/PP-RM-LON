@@ -51,11 +51,10 @@ for k, v in filtered_dict.items():
 		
 	if os.environ.get('MORPH_DEBUG') == "1":
 		print(checkURL)
-
-	driver.get(checkURL)
 	try:
+		driver.get(checkURL)
 		numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
-	except ValueError:
+	except:
 		numOfPages = 0	
 
 	print("NumberOfPages:"+str(numOfPages))
