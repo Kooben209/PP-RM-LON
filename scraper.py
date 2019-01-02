@@ -36,7 +36,10 @@ def saveToStore(data):
 	scraperwiki.sqlite.execute("INSERT OR IGNORE INTO 'data' VALUES (?,?,?,?,?,?,?,?,?,?,?)", (data['propId'], data['link'], data['title'], data['address'], data['price'], data['displayPrice'], data['image1'], data['pubDate'], data['addedOrReduced'], data['reduced'], data['location']))
 	#scraperwiki.sqlite.commit()
 	
-excludeAgents = ['andrew granger','Readings Property Group']
+excludeAgents = []
+if os.environ.get("MORPH_EXCLUDE_AGENTS") is not None:
+	excludeAgentsString = os.environ["MORPH_EXCLUDE_AGENTS"]
+	excludeAgents = excludeAgentsString.lower().split("^")
 
 filtered_dict = {k:v for (k,v) in os.environ.items() if 'MORPH_URL' in k}
 
