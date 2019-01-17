@@ -1,17 +1,28 @@
-import csv
-import time
-from datetime import datetime
-import requests
-import sys
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import os
-import json
-import math
-from decimal import Decimal
-from re import sub
+from   bs4 import BeautifulSoup
+import sys
+import time
 import scraperwiki
 import sqlite3
+import re
+from re import sub
+from datetime import datetime, timedelta
+from decimal import Decimal
+from getSoldPrices import getAllSoldPrices
+import requests
 
-#import setEnvs 
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--disable-gpu")
+
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("start-maximized")
+chrome_options.add_argument("disable-infobars")
+chrome_options.add_argument("--disable-extensions")
+
+driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
 
 def parseAskingPrice(aPrice):
 	try:
@@ -19,87 +30,137 @@ def parseAskingPrice(aPrice):
 	except:
 		value = 0
 	return value
+	
+def saveToStore(data):
+	scraperwiki.sqlite.execute("CREATE TABLE IF NOT EXISTS 'data' ( 'propId' TEXT, link TEXT, title TEXT, address TEXT, price BIGINT, 'displayPrice' TEXT, image1 TEXT, 'pubDate' DATETIME, 'addedOrReduced' DATE, reduced BOOLEAN, location TEXT, CHECK (reduced IN (0, 1)), PRIMARY KEY('propId'))")
+	scraperwiki.sqlite.execute("CREATE UNIQUE INDEX IF NOT EXISTS 'data_propId_unique' ON 'data' ('propId')")
+	scraperwiki.sqlite.execute("INSERT OR IGNORE INTO 'data' VALUES (?,?,?,?,?,?,?,?,?,?,?)", (data['propId'], data['link'], data['title'], data['address'], data['price'], data['displayPrice'], data['image1'], data['pubDate'], data['addedOrReduced'], data['reduced'], data['location']))
+	#scraperwiki.sqlite.commit()
+	
+excludeAgents = []
+if os.environ.get("MORPH_EXCLUDE_AGENTS") is not None:
+	excludeAgentsString = os.environ["MORPH_EXCLUDE_AGENTS"]
+	excludeAgents = excludeAgentsString.lower().split("^")
 
-sleepTime = 2
+filtered_dict = {k:v for (k,v) in os.environ.items() if 'MORPH_URL' in k}
+
+sleepTime = 5
 if os.environ.get("MORPH_SLEEP") is not None:
 	sleepTime = int(os.environ["MORPH_SLEEP"])
 
-SoldDateCutoff = '20181201'
-if os.environ.get("MORPH_SOLD_DATE_CUTOFF") is not None:
-	SoldDateCutoff = os.environ["MORPH_SOLD_DATE_CUTOFF"]
-	
-SoldPriceURL = ''
-if os.environ.get("MORPH_SOLD_PRICE_URL") is not None:
-	SoldPriceURL = os.environ["MORPH_SOLD_PRICE_URL"]
-	
-db = sqlite3.connect('data.sqlite')
-db.row_factory = sqlite3.Row
-cursor = db.cursor()
+for k, v in filtered_dict.items(): 
+	checkURL = v
+	if os.environ.get('MORPH_MAXDAYS') == "0":
+		checkURL = checkURL.replace("&maxDaysSinceAdded=1","")
+		
+	if os.environ.get('MORPH_DEBUG') == "1":
+		print(checkURL)
+	try:
+		driver.get(checkURL)
+		numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
+	except:
+		numOfPages = 0	
 
-if os.environ.get("MORPH_DB_ADD_COL") is not None:
-	if os.environ.get("MORPH_DB_ADD_COL") == '1':
-		cursor.execute('PRAGMA TABLE_INFO(data)')
-		columns = [tup[1] for tup in cursor.fetchall()]
-		if 'displaySoldPrice' not in columns:
-			cursor.execute('ALTER TABLE data ADD COLUMN displaySoldPrice TEXT')
-		if 'soldPrice' not in columns:
-			cursor.execute('ALTER TABLE data ADD COLUMN soldPrice BIGINT')
-		if 'soldDate' not in columns:
-			cursor.execute('ALTER TABLE data ADD COLUMN soldDate DATETIME')
-		if 'priceDifference' not in columns:
-			cursor.execute('ALTER TABLE data ADD COLUMN priceDifference TEXT')
-		if 'isPriceIncrease' not in columns:
-			cursor.execute('ALTER TABLE data ADD COLUMN isPriceIncrease BOOLEAN')
-		if 'hasMoreThanOneSaleHistoryItem' not in columns:
-			cursor.execute('ALTER TABLE data ADD COLUMN hasMoreThanOneSaleHistoryItem BOOLEAN')
+	print("NumberOfPages:"+str(numOfPages))
 
-cursor.execute('''SELECT * FROM data  WHERE pubDate < ?''',(SoldDateCutoff,))
-all_rows = cursor.fetchall()
+	page = 0
+	while page < numOfPages:
+		numResults=0
+		numPreFeat=0
+		numNormFeat=0
+		numFeat=0
+		
+		html = driver.page_source
+		soup = BeautifulSoup(html, 'html.parser')
+		
+		searchResults = soup.find("div", {"id" : "l-searchResults"})
+		matches = 0
+		if searchResults is not None:		
+			adverts = searchResults.findAll("div", {"id" : lambda L: L and L.startswith('property-')})
+			numResults = len(adverts)
+			numPreFeat = len(searchResults.findAll("div", {"class" : "propertyCard propertyCard--premium propertyCard--featured"}))
+			numNormFeat = len(searchResults.findAll("div", {"class" : "propertyCard propertyCard--featured"}))
+			numFeat = numPreFeat+numNormFeat
+			
+			for advert in adverts:
+				reduced=False
+				if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
+					advertMatch = {}
+					agent = advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}).text
+					if any(x in agent.lower() for x in excludeAgents):
+						continue;
 
-#print(str(len(all_rows)))
+					location = k.replace("MORPH_URL_","").replace("_"," ").title()
+					propLink="https://www.rightmove.co.uk"+advert.find("a", {"class" : "propertyCard-link"}).get('href')
+					propId=re.findall('\d+',propLink)
+					title = advert.find("h2", {"class" : "propertyCard-title"}).text
+					address = advert.find("address", {"class" : "propertyCard-address"}).find("span").text
+					link = advert.find("a", {"class" : "propertyCard-link"})
+					price = parseAskingPrice(advert.find("div", {"class" : "propertyCard-priceValue"}).text)
+					displayPrice = advert.find("div", {"class" : "propertyCard-priceValue"}).text
+					image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
+					addedOrReduced = advert.find("span", {"class" : "propertyCard-branchSummary-addedOrReduced"}).text
+					if addedOrReduced != None and addedOrReduced != "":
+						if "Reduced" in addedOrReduced:
+							reduced=True
+						if "yesterday" in addedOrReduced:
+							addedOrReduced=datetime.now().date()- timedelta(days=1)
+						elif "today" in addedOrReduced:	
+							addedOrReduced=datetime.now().date()
+						else:
+							dateMatch = re.search(r'\d{2}/\d{2}/\d{4}', addedOrReduced)
+							addedOrReduced = datetime.strptime(dateMatch.group(), '%d/%m/%Y').date()
+					else:
+						addedOrReduced = datetime.now().date()
+					advertMatch['propId'] = propId[0]
+					advertMatch['link'] = propLink
+					advertMatch['title'] = title
+					advertMatch['address'] = address
+					advertMatch['price'] = price
+					advertMatch['displayPrice'] = displayPrice
+					advertMatch['image1'] = image1
+					advertMatch['pubDate'] = datetime.now()
+					advertMatch['addedOrReduced'] = addedOrReduced
+					advertMatch['reduced'] = reduced
+					advertMatch['location'] = location
 
-#sys.exit()
+					#scraperwiki.sqlite.save(['propId'],advertMatch)
+					
+					saveToStore(advertMatch)
+					
+					matches += 1
+			print("Found "+str(matches)+" Matches from "+str(numResults)+" Items of which "+str(numFeat)+" are Featured")
+			if matches == 0 or (numResults-numFeat-2)>matches:
+				break		
+		else:
+			print('No Search Results\n')
+		
+		if numOfPages > 1:
+			if page == 0: 
+				close_cookie = driver.find_element_by_css_selector('#cookiePolicy > div > button')
+				close_cookie.click()
+			time.sleep(sleepTime)
+			next_page = driver.find_element_by_css_selector('.pagination-direction--next')
+			next_page.click()
+			time.sleep(sleepTime)
+		page +=1 
+	time.sleep(sleepTime)
+driver.quit()
 
-line_count = 0
-foundSoldPrices = 0
+today = datetime.today()
+timestr = today.strftime('%Y-%m-%d')
+
+currentMonth=timestr
 with requests.session() as s:
 	s.headers['user-agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'
+	r1 = s.get('https://www.gov.uk/government/statistical-data-sets/price-paid-data-downloads')
+	soup = BeautifulSoup(r1.content, 'html.parser')
+	currentMonthText = soup.find("h2", {"id" : lambda L: L and L.startswith('current-month-')})
+	if currentMonthText is not None:
+		currentMonth = currentMonthText.text.replace('Current month (','').replace(' data)','').strip()
+		currentMonth = datetime.strptime(currentMonth,'%B %Y').strftime('%Y-%m-%d')
 
-	for row in all_rows:
-		if os.environ.get('MORPH_DEBUG') == "1":
-			print('{0} - {1} - {2}'.format(row['propId'], row['link'], row['pubDate']))
-		pubDate = datetime.strptime(row['pubDate'], "%Y-%m-%d %H:%M:%S.%f")
-		checkURL = row['link']
-		time.sleep(sleepTime)
-		r1 = s.get(checkURL)
-		time.sleep(sleepTime)
-		r1 = s.get(checkURL+'#historyMarket')
-		time.sleep(sleepTime)
-		soldPriceCheckURL = SoldPriceURL+row['propId']
-		time.sleep(sleepTime)
-		r1 = s.get(soldPriceCheckURL)
-		salesHistoryDic=json.loads(r1.content)
-		
-		if salesHistoryDic:
-			if len(salesHistoryDic['saleHistoryItems']) > 0:
-				priceDifference = salesHistoryDic['saleHistoryItems'][0].get('priceDifference')
-				isPriceIncrease = salesHistoryDic['saleHistoryItems'][0].get('isPriceIncrease',False)
-				hasMoreThanOneSaleHistoryItem = salesHistoryDic['saleHistoryItems'][0].get('hasMoreThanOneSaleHistoryItem',False)
-				
-				if 'dateSold' in salesHistoryDic['saleHistoryItems'][0]:
-					lastSoldDate = salesHistoryDic['saleHistoryItems'][0]['dateSold']
-					lastSoldDate = datetime.strptime(lastSoldDate, "%Y")
-					if lastSoldDate.year >= pubDate.year:
-						displayLastSoldPrice = salesHistoryDic['saleHistoryItems'][0]['price']
-						lastSoldPrice = parseAskingPrice(displayLastSoldPrice.strip())
-						print('Recent last sold data found for '+str(row['propId']))
-						cursor.execute('''UPDATE data SET hasMoreThanOneSaleHistoryItem=?, isPriceIncrease=?, priceDifference=?, displaySoldPrice = ?, soldPrice = ?, soldDate = ? WHERE propId = ? ''',(hasMoreThanOneSaleHistoryItem,isPriceIncrease,priceDifference,displayLastSoldPrice,lastSoldPrice, lastSoldDate, row['propId']))
-						db.commit()
-						foundSoldPrices += 1
-
-		line_count += 1
-print(f'Processed {line_count} lines.')
-print(f'Found {foundSoldDates} Recent Sold Prices.')
-db.close()
-
-sys.exit()
+if os.environ.get('MORPH_RUN_SOLD_PRICES') == "1":
+	getAllSoldPrices(currentMonth)
+	
+sys.exit(0)
