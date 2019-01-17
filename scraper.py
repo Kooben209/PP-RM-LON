@@ -11,7 +11,7 @@ from re import sub
 import scraperwiki
 import sqlite3
 
-import setEnvs 
+#import setEnvs 
 
 def parseAskingPrice(aPrice):
 	try:
