@@ -60,7 +60,7 @@ def getAllSoldPrices(currentMonth=SoldDateCutoff):
 			if 'hasMoreThanOneSaleHistoryItem' not in columns:
 				cursor.execute('ALTER TABLE data ADD COLUMN hasMoreThanOneSaleHistoryItem BOOLEAN')
 
-	cursor.execute('''SELECT * FROM data  WHERE pubDate < ?''',(SoldDateCutoff,))
+	cursor.execute('''SELECT * FROM data  WHERE soldPrice is null and pubDate < ?''',(SoldDateCutoff,))
 	all_rows = cursor.fetchall()
 
 	line_count = 0
@@ -104,8 +104,6 @@ def getAllSoldPrices(currentMonth=SoldDateCutoff):
 	print(f'Processed {line_count} lines.')
 	print(f'Found {foundSoldPrices} Recent Sold Prices.')
 	db.close()
-
-	sys.exit()
 	
 if __name__ == '__main__':
 	if len(sys.argv) > 1:
