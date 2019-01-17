@@ -31,20 +31,6 @@ def parseAskingPrice(aPrice):
 		value = 0
 	return value
 	
-				if 'displaySoldPrice' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN displaySoldPrice TEXT')
-			if 'soldPrice' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN soldPrice BIGINT')
-			if 'soldDate' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN soldDate DATETIME')
-			if 'priceDifference' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN priceDifference TEXT')
-			if 'isPriceIncrease' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN isPriceIncrease BOOLEAN')
-			if 'hasMoreThanOneSaleHistoryItem' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN hasMoreThanOneSaleHistoryItem BOOLEAN')
-
-	
 def saveToStore(data):
 	scraperwiki.sqlite.execute("CREATE TABLE IF NOT EXISTS 'data' ( 'propId' TEXT, link TEXT, title TEXT, address TEXT, price BIGINT, 'displayPrice' TEXT, image1 TEXT, 'pubDate' DATETIME, 'addedOrReduced' DATE, reduced BOOLEAN, location TEXT, displaySoldPrice TEXT,soldPrice BIGINT,soldDate DATETIME,priceDifference TEXT,isPriceIncrease BOOLEAN,hasMoreThanOneSaleHistoryItem BOOLEAN, CHECK (reduced IN (0, 1)), PRIMARY KEY('propId'))")
 	scraperwiki.sqlite.execute("CREATE UNIQUE INDEX IF NOT EXISTS 'data_propId_unique' ON 'data' ('propId')")
