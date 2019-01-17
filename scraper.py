@@ -56,6 +56,50 @@ if os.environ.get("MORPH_DB_ADD_COL") is not None:
 cursor.execute('''SELECT * FROM data  WHERE pubDate < ?''',(SoldDateCutoff,))
 all_rows = cursor.fetchall()
 
-print(str(len(all_rows)))
+#print(str(len(all_rows)))
+
+#sys.exit()
+
+line_count = 0
+foundSoldPrices = 0
+with requests.session() as s:
+	s.headers['user-agent'] = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36'
+
+	for row in all_rows:
+		if os.environ.get('MORPH_DEBUG') == "1":
+			print('{0} - {1} - {2}'.format(row['propId'], row['link'], row['pubDate']))
+		pubDate = datetime.strptime(row['pubDate'], "%Y-%m-%d %H:%M:%S.%f")
+		checkURL = row['link']
+		time.sleep(sleepTime)
+		r1 = s.get(checkURL)
+		time.sleep(sleepTime)
+		r1 = s.get(checkURL+'#historyMarket')
+		time.sleep(sleepTime)
+		soldPriceCheckURL = SoldPriceURL+row['propId']
+		time.sleep(sleepTime)
+		r1 = s.get(soldPriceCheckURL)
+		salesHistoryDic=json.loads(r1.content)
+		
+		if salesHistoryDic:
+			if len(salesHistoryDic['saleHistoryItems']) > 0:
+				priceDifference = salesHistoryDic['saleHistoryItems'][0].get('priceDifference')
+				isPriceIncrease = salesHistoryDic['saleHistoryItems'][0].get('isPriceIncrease',False)
+				hasMoreThanOneSaleHistoryItem = salesHistoryDic['saleHistoryItems'][0].get('hasMoreThanOneSaleHistoryItem',False)
+				
+				if 'dateSold' in salesHistoryDic['saleHistoryItems'][0]:
+					lastSoldDate = salesHistoryDic['saleHistoryItems'][0]['dateSold']
+					lastSoldDate = datetime.strptime(lastSoldDate, "%Y")
+					if lastSoldDate.year >= pubDate.year:
+						displayLastSoldPrice = salesHistoryDic['saleHistoryItems'][0]['price']
+						lastSoldPrice = parseAskingPrice(displayLastSoldPrice.strip())
+						print('Recent last sold data found for '+str(row['propId']))
+						cursor.execute('''UPDATE data SET hasMoreThanOneSaleHistoryItem=?, isPriceIncrease=?, priceDifference=?, displaySoldPrice = ?, soldPrice = ?, soldDate = ? WHERE propId = ? ''',(hasMoreThanOneSaleHistoryItem,isPriceIncrease,priceDifference,displayLastSoldPrice,lastSoldPrice, lastSoldDate, row['propId']))
+						db.commit()
+						foundSoldPrices += 1
+
+		line_count += 1
+print(f'Processed {line_count} lines.')
+print(f'Found {foundSoldDates} Recent Sold Prices.')
+db.close()
 
 sys.exit()
