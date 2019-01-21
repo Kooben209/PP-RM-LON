@@ -25,6 +25,7 @@ chrome_options.add_argument("start-maximized")
 chrome_options.add_argument("disable-infobars")
 chrome_options.add_argument("--disable-extensions")
 
+driverException = False
 driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
 #driver = webdriver.Chrome(chrome_options=chrome_options)
 
@@ -60,12 +61,17 @@ for k, v in filtered_dict.items():
 	if os.environ.get('MORPH_DEBUG') == "1":
 		print(checkURL)
 	try:
+		if driverException == True:
+			driver = webdriver.Chrome(chrome_options=chrome_options)
+			driverException = False
 		driver.get(checkURL)
 		numOfPages = int(driver.find_element_by_xpath('/html/body/div[1]/div[2]/div[1]/div[3]/div/div/div/div[2]/span[3]').text)
 	except ValueError:
 		numOfPages = 0	
 	except WebDriverException as e:
 		print("WebDriverException Exception: {0} Message: {1}".format("e message", str(e)))		
+		driverException = True
+		driver.quit()
 		continue
 
 	print("NumberOfPages:"+str(numOfPages))
@@ -154,7 +160,8 @@ for k, v in filtered_dict.items():
 				
 		except WebDriverException as e:
 			print("WebDriverException Exception: {0} Message: {1}".format("e message", str(e)))		
-		finally:
+			driverException = True
+			driver.quit()
 			break
 		page +=1 
 	time.sleep(sleepTime)
