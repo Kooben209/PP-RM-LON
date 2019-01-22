@@ -69,6 +69,7 @@ for k, v in filtered_dict.items():
 	except ValueError:
 		numOfPages = 0	
 	except WebDriverException as e:
+		print(k.replace("MORPH_URL_","").replace("_"," ").title())
 		print("WebDriverException Exception: {0} Message: {1}".format("e message", str(e)))		
 		driverException = True
 		driver.quit()
@@ -159,6 +160,7 @@ for k, v in filtered_dict.items():
 				time.sleep(sleepTime)
 				
 		except WebDriverException as e:
+			print(k.replace("MORPH_URL_","").replace("_"," ").title())
 			print("WebDriverException Exception: {0} Message: {1}".format("e message", str(e)))		
 			driverException = True
 			driver.quit()
