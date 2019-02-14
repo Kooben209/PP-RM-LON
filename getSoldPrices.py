@@ -47,6 +47,8 @@ def getAllSoldPrices(currentMonth=SoldDateCutoff):
 		if os.environ.get("MORPH_DB_ADD_COL") == '1':
 			cursor.execute('PRAGMA TABLE_INFO(data)')
 			columns = [tup[1] for tup in cursor.fetchall()]
+			if 'hashTagLocation' not in columns:
+				cursor.execute('ALTER TABLE data ADD COLUMN hashTagLocation TEXT')
 			if 'displaySoldPrice' not in columns:
 				cursor.execute('ALTER TABLE data ADD COLUMN displaySoldPrice TEXT')
 			if 'soldPrice' not in columns:
