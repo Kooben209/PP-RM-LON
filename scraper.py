@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from getSoldPrices import getAllSoldPrices
 import requests
+import random
 
 import setEnvs
 
@@ -37,9 +38,9 @@ def parseAskingPrice(aPrice):
 	return value
 	
 def saveToStore(data):
-	scraperwiki.sqlite.execute("CREATE TABLE IF NOT EXISTS 'data' ( 'propId' TEXT, link TEXT, title TEXT, address TEXT, price BIGINT, 'displayPrice' TEXT, image1 TEXT, 'pubDate' DATETIME, 'addedOrReduced' DATE, reduced BOOLEAN, location TEXT, displaySoldPrice TEXT,soldPrice BIGINT,soldDate DATETIME,priceDifference TEXT,isPriceIncrease BOOLEAN,hasMoreThanOneSaleHistoryItem BOOLEAN, CHECK (reduced IN (0, 1)), PRIMARY KEY('propId'))")
+	scraperwiki.sqlite.execute("CREATE TABLE IF NOT EXISTS 'data' ( 'propId' TEXT, link TEXT, title TEXT, address TEXT, price BIGINT, 'displayPrice' TEXT, image1 TEXT, 'pubDate' DATETIME, 'addedOrReduced' DATE, reduced BOOLEAN, location TEXT, displaySoldPrice TEXT,soldPrice BIGINT,soldDate DATETIME,priceDifference TEXT,isPriceIncrease BOOLEAN,hasMoreThanOneSaleHistoryItem BOOLEAN, hashTagLocation TEXT, postContent TEXT, CHECK (reduced IN (0, 1)),  PRIMARY KEY('propId'))")
 	scraperwiki.sqlite.execute("CREATE UNIQUE INDEX IF NOT EXISTS 'data_propId_unique' ON 'data' ('propId')")
-	scraperwiki.sqlite.execute("INSERT OR IGNORE INTO 'data' VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (data['propId'], data['link'], data['title'], data['address'], data['price'], data['displayPrice'], data['image1'], data['pubDate'], data['addedOrReduced'], data['reduced'], data['location'],None,None,None,None,None,None))
+	scraperwiki.sqlite.execute("INSERT OR IGNORE INTO 'data' VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (data['propId'], data['link'], data['title'], data['address'], data['price'], data['displayPrice'], data['image1'], data['pubDate'], data['addedOrReduced'], data['reduced'], data['location'],None,None,None,None,None,None,data['hashTagLocation'],data['postContent']))
 	#scraperwiki.sqlite.commit()
 	
 excludeAgents = []
@@ -49,7 +50,21 @@ if os.environ.get("MORPH_EXCLUDE_AGENTS") is not None:
 
 filtered_dict = {k:v for (k,v) in os.environ.items() if 'MORPH_URL' in k}
 
+postTemplates = {k:v for (k,v) in os.environ.items() if 'ENTRYTEXT' in k}
 sleepTime = 5
+
+if os.environ.get("MORPH_DB_ADD_COL") is not None:
+    if os.environ.get("MORPH_DB_ADD_COL") == '1':
+        try:
+            scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN hashTagLocation TEXT')
+        except:
+            print('col - hashTagLocation exists')
+        try:
+            scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN postContent TEXT')
+        except:
+            print('col - postContent exists')
+
+
 if os.environ.get("MORPH_SLEEP") is not None:
 	sleepTime = int(os.environ["MORPH_SLEEP"])
 
@@ -101,10 +116,12 @@ for k, v in filtered_dict.items():
 					reduced=False
 					if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
 						advertMatch = {}
+						postKey = random.choice(list(postTemplates))
 						agent = advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}).text
 						if any(x in agent.lower() for x in excludeAgents):
 							continue
 
+						hashTagLocation = k.replace("MORPH_URL_","").replace("_"," ").title().replace(" ","")
 						location = k.replace("MORPH_URL_","").replace("_"," ").title()
 						propLink="https://www.rightmove.co.uk"+advert.find("a", {"class" : "propertyCard-link"}).get('href')
 						propId=re.findall('\d+',propLink)
@@ -138,7 +155,9 @@ for k, v in filtered_dict.items():
 						advertMatch['addedOrReduced'] = addedOrReduced
 						advertMatch['reduced'] = reduced
 						advertMatch['location'] = location
-
+						advertMatch['hashTagLocation'] = hashTagLocation
+						advertMatch['postContent'] = postTemplates[postKey].format(title, hashTagLocation, displayPrice)
+                        
 						#scraperwiki.sqlite.save(['propId'],advertMatch)
 						
 						saveToStore(advertMatch)
