@@ -13,7 +13,7 @@ import sqlite3
 
 import setEnvs 
 
-SoldDateCutoff = '2018-12-01' #default date if no arg
+SoldDateCutoff = '2025-01-01' #default date if no arg
 
 def parseAskingPrice(aPrice):
 	try:
@@ -22,8 +22,9 @@ def parseAskingPrice(aPrice):
 		value = 0
 	return value
 
-def getAllSoldPrices(currentMonth=SoldDateCutoff):
+def getAllSoldPrices(currentMonth):
 	sleepTime = 2
+	
 	if os.environ.get("MORPH_SLEEP") is not None:
 		sleepTime = int(os.environ["MORPH_SLEEP"])
 
@@ -34,36 +35,39 @@ def getAllSoldPrices(currentMonth=SoldDateCutoff):
 			SoldDateCutoff = os.environ["MORPH_SOLD_DATE_CUTOFF"]
 	
 	print('SoldDateCutoff: '+SoldDateCutoff)
-	
 	SoldPriceURL = ''
 	if os.environ.get("MORPH_SOLD_PRICE_URL") is not None:
 		SoldPriceURL = os.environ["MORPH_SOLD_PRICE_URL"]
 		
-	db = sqlite3.connect('data.sqlite')
-	db.row_factory = sqlite3.Row
-	cursor = db.cursor()
-
 	if os.environ.get("MORPH_DB_ADD_COL") is not None:
 		if os.environ.get("MORPH_DB_ADD_COL") == '1':
-			cursor.execute('PRAGMA TABLE_INFO(data)')
-			columns = [tup[1] for tup in cursor.fetchall()]
-			if 'hashTagLocation' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN hashTagLocation TEXT')
-			if 'displaySoldPrice' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN displaySoldPrice TEXT')
-			if 'soldPrice' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN soldPrice BIGINT')
-			if 'soldDate' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN soldDate DATETIME')
-			if 'priceDifference' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN priceDifference TEXT')
-			if 'isPriceIncrease' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN isPriceIncrease BOOLEAN')
-			if 'hasMoreThanOneSaleHistoryItem' not in columns:
-				cursor.execute('ALTER TABLE data ADD COLUMN hasMoreThanOneSaleHistoryItem BOOLEAN')
+			
+			try:
+				scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN displaySoldPrice TEXT')
+			except Exception as e:
+				print('col exists '+str(e))
+			try:   
+				scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN soldPrice BIGINT')
+			except Exception as e:
+				print('col exists '+str(e))
+			try:
+				scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN soldDate DATETIME')
+			except Exception as e:
+				print('col exists '+str(e))
+			try: 
+				scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN priceDifference TEXT')
+			except Exception as e:
+				print('col exists '+str(e))
+			try: 
+				scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN isPriceIncrease BOOLEAN')
+			except Exception as e:
+				print('col exists '+str(e))
+			try: 
+				scraperwiki.sqlite.execute('ALTER TABLE data ADD COLUMN hasMoreThanOneSaleHistoryItem BOOLEAN')
+			except Exception as e:
+				print('col exists '+str(e))
 
-	cursor.execute('''SELECT * FROM data  WHERE soldPrice is null and pubDate < ?''',(SoldDateCutoff,))
-	all_rows = cursor.fetchall()
+	all_rows = scraperwiki.sqlite.select("* from data WHERE soldPrice is null and pubDate < ?",SoldDateCutoff)
 
 	line_count = 0
 	foundSoldPrices = 0
@@ -98,14 +102,12 @@ def getAllSoldPrices(currentMonth=SoldDateCutoff):
 							displayLastSoldPrice = salesHistoryDic['saleHistoryItems'][0]['price']
 							lastSoldPrice = parseAskingPrice(displayLastSoldPrice.strip())
 							print('Recent last sold data found for '+str(row['propId']))
-							cursor.execute('''UPDATE data SET hasMoreThanOneSaleHistoryItem=?, isPriceIncrease=?, priceDifference=?, displaySoldPrice = ?, soldPrice = ?, soldDate = ? WHERE propId = ? ''',(hasMoreThanOneSaleHistoryItem,isPriceIncrease,priceDifference,displayLastSoldPrice,lastSoldPrice, lastSoldDate, row['propId']))
-							db.commit()
+							scraperwiki.sqlite.execute('''UPDATE data SET hasMoreThanOneSaleHistoryItem=?, isPriceIncrease=?, priceDifference=?, displaySoldPrice = ?, soldPrice = ?, soldDate = ? WHERE propId = ? ''',(hasMoreThanOneSaleHistoryItem,isPriceIncrease,priceDifference,displayLastSoldPrice,lastSoldPrice, lastSoldDate, row['propId']))
 							foundSoldPrices += 1
 
 			line_count += 1
 	print(f'Processed {line_count} lines.')
 	print(f'Found {foundSoldPrices} Recent Sold Prices.')
-	db.close()
 	
 if __name__ == '__main__':
 	if len(sys.argv) > 1:
