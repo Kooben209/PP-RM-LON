@@ -155,7 +155,7 @@ for k, v in filtered_dict.items():
 						advertMatch['addedOrReduced'] = addedOrReduced
 						advertMatch['reduced'] = reduced
 						advertMatch['location'] = location
-						advertMatch['hashTagLocation'] = hashTagLocation
+						advertMatch['hashTagLocation'] = address
 						advertMatch['postContent'] = postTemplates[postKey].format(title, hashTagLocation, displayPrice)
                         
 						#scraperwiki.sqlite.save(['propId'],advertMatch)
