@@ -117,9 +117,11 @@ for k, v in filtered_dict.items():
 					if advert.find("div", {"class" : "propertyCard-keywordTag matched"}) is not None:
 						advertMatch = {}
 						postKey = random.choice(list(postTemplates))
-						agent = advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}).text
-						if any(x in agent.lower() for x in excludeAgents):
-							continue
+
+						if advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}) is not None:
+							agent = advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}).text
+							if any(x in agent.lower() for x in excludeAgents):
+								continue
 
 						hashTagLocation = k.replace("MORPH_URL_","").replace("_"," ").title().replace(" ","")
 						location = k.replace("MORPH_URL_","").replace("_"," ").title()
