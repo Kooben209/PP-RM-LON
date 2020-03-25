@@ -118,8 +118,8 @@ for k, v in filtered_dict.items():
 						advertMatch = {}
 						postKey = random.choice(list(postTemplates))
 
-						if advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}) is not None:
-							agent = advert.find("span", {"class" : "propertyCard-branchSummary-branchName"}).text
+						if advert.find("div", {"class" : "propertyCard-branchLogo"}).find("a" , {"class" : "propertyCard-branchLogo-link"}) is not None:
+							agent = advert.find("div", {"class" : "propertyCard-branchLogo"}).find("a" , {"class" : "propertyCard-branchLogo-link"}).get("title")
 							if any(x in agent.lower() for x in excludeAgents):
 								continue
 
@@ -128,7 +128,7 @@ for k, v in filtered_dict.items():
 						propLink="https://www.rightmove.co.uk"+advert.find("a", {"class" : "propertyCard-link"}).get('href')
 						propId=re.findall('\d+',propLink)
 						title = advert.find("h2", {"class" : "propertyCard-title"}).text
-						address = advert.find("address", {"class" : "propertyCard-address"}).find("span").text
+						address = advert.find("address", {"class" : "propertyCard-address"}).text
 						link = advert.find("a", {"class" : "propertyCard-link"})
 						price = parseAskingPrice(advert.find("div", {"class" : "propertyCard-priceValue"}).text)
 						displayPrice = advert.find("div", {"class" : "propertyCard-priceValue"}).text
