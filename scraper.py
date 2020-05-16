@@ -205,6 +205,8 @@ for k, v in filtered_dict.items():
 		r = requests.post(remoteEndpoint, json=json.dumps(matchesList, default=str))
 		if r.status_code == 200:
 			print('{0} Record(s) posted to endpoint'.format(str(numMatches)))
+		elif r.status_code == 409:
+			print('Database Conflict Error when posting {0} record(s) to endpoint'.format(str(numMatches)))
 		elif r.status_code == 500:
 			print('Internal Server Error when posting {0} record(s) to endpoint'.format(str(numMatches)))
 		else:
