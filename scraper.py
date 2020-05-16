@@ -15,6 +15,8 @@ from getSoldPrices import getAllSoldPrices
 import requests
 import random
 
+import json
+
 import setEnvs
 
 chrome_options = Options()
@@ -27,8 +29,8 @@ chrome_options.add_argument("disable-infobars")
 chrome_options.add_argument("--disable-extensions")
 
 driverException = False
-driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
-#driver = webdriver.Chrome(chrome_options=chrome_options)
+#driver = webdriver.Chrome(chrome_options=chrome_options,executable_path='/usr/local/bin/chromedriver')
+driver = webdriver.Chrome(chrome_options=chrome_options)
 
 def parseAskingPrice(aPrice):
 	try:
@@ -41,7 +43,9 @@ def saveToStore(data):
 	scraperwiki.sqlite.execute("CREATE TABLE IF NOT EXISTS 'data' ( 'propId' TEXT, link TEXT, title TEXT, address TEXT, price BIGINT, 'displayPrice' TEXT, image1 TEXT, 'pubDate' DATETIME, 'addedOrReduced' DATE, reduced BOOLEAN, location TEXT, displaySoldPrice TEXT,soldPrice BIGINT,soldDate DATETIME,priceDifference TEXT,isPriceIncrease BOOLEAN,hasMoreThanOneSaleHistoryItem BOOLEAN, hashTagLocation TEXT, postContent TEXT, CHECK (reduced IN (0, 1)),  PRIMARY KEY('propId'))")
 	scraperwiki.sqlite.execute("CREATE UNIQUE INDEX IF NOT EXISTS 'data_propId_unique' ON 'data' ('propId')")
 	scraperwiki.sqlite.execute("INSERT OR IGNORE INTO 'data' VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (data['propId'], data['link'], data['title'], data['address'], data['price'], data['displayPrice'], data['image1'], data['pubDate'], data['addedOrReduced'], data['reduced'], data['location'],None,None,None,None,None,None,data['hashTagLocation'],data['postContent']))
-	#scraperwiki.sqlite.commit()
+	changes = scraperwiki.sqlite.execute("SELECT changes();")
+	return changes['data'][0][0]
+ 	#scraperwiki.sqlite.commit()
 	
 excludeAgents = []
 if os.environ.get("MORPH_EXCLUDE_AGENTS") is not None:
@@ -64,6 +68,9 @@ if os.environ.get("MORPH_DB_ADD_COL") is not None:
         except:
             print('col - postContent exists')
 
+remoteEndpoint='#'
+if os.environ.get("MORPH_REMOTE_ENDPOINT") is not None:
+	remoteEndpoint = os.environ["MORPH_REMOTE_ENDPOINT"]
 
 if os.environ.get("MORPH_SLEEP") is not None:
 	sleepTime = int(os.environ["MORPH_SLEEP"])
@@ -91,6 +98,8 @@ for k, v in filtered_dict.items():
 		continue
 
 	print("NumberOfPages:"+str(numOfPages))
+	
+	matchesList = []
 
 	page = 0
 	while page < numOfPages:
@@ -161,9 +170,10 @@ for k, v in filtered_dict.items():
 						advertMatch['postContent'] = postTemplates[postKey].format(title, hashTagLocation, displayPrice)
                         
 						#scraperwiki.sqlite.save(['propId'],advertMatch)
-						
-						saveToStore(advertMatch)
-						
+						dbChanges = saveToStore(advertMatch)
+						if dbChanges > 0:
+							matchesList.append(advertMatch)
+       
 						matches += 1
 				print("Found "+str(matches)+" Matches from "+str(numResults)+" Items of which "+str(numFeat)+" are Featured")
 				if matches == 0 or (numResults-numFeat-2)>matches:
@@ -188,6 +198,18 @@ for k, v in filtered_dict.items():
 			break
 		page +=1 
 	time.sleep(sleepTime)
+ 
+	#post all matches to remote data store api
+	numMatches = len(matchesList)
+	if remoteEndpoint != '#' and numMatches > 0:
+		r = requests.post(remoteEndpoint, json=json.dumps(matchesList, default=str))
+		if r.status_code == 200:
+			print('{0} Record(s) posted to endpoint'.format(str(numMatches)))
+		elif r.status_code == 500:
+			print('Internal Server Error when posting {0} record(s) to endpoint'.format(str(numMatches)))
+		else:
+			print('Unspecified Error when posting {0} record(s) to endpoint'.format(str(numMatches)))
+
 driver.quit()
 
 today = datetime.today()
