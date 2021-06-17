@@ -141,7 +141,10 @@ for k, v in filtered_dict.items():
 						link = advert.find("a", {"class" : "propertyCard-link"})
 						price = parseAskingPrice(advert.find("div", {"class" : "propertyCard-priceValue"}).text)
 						displayPrice = advert.find("div", {"class" : "propertyCard-priceValue"}).text
-						image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
+						if advert.find("img", {"alt" : "Property Image 1"}) is None:
+							image1 = advert.findAll("img")[0].get('src')
+						else:
+							image1 = advert.find("img", {"alt" : "Property Image 1"}).get('src')
 						addedOrReduced = advert.find("span", {"class" : "propertyCard-branchSummary-addedOrReduced"}).text
 						if addedOrReduced != None and addedOrReduced != "":
 							if "Reduced" in addedOrReduced:
